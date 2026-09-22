@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PASUMbrella</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+  // ====== PASTE YOUR FIREBASE CONFIG HERE ======
+  // Firebase console -> Project settings -> General -> "Your apps" -> Web app -> SDK setup and configuration
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBTqjY9ou23qVb2DY8qc2TNzerj6s6z6EA",
+    authDomain: "pasumbrella.firebaseapp.com",
+    projectId: "pasumbrella",
+    storageBucket: "pasumbrella.firebasestorage.app",
+    messagingSenderId: "324224193903",
+    appId: "1:324224193903:web:c26fb41dbf0638c83e849a"
+  };
+  // ================================================
+</script>
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  :root {
+    --bg-page: #F1EFE8;
+    --bg-card: #FFFFFF;
+    --border: #D3D1C7;
+    --border-strong: #B4B2A9;
+    --text-primary: #2C2C2A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #888780;
+    --accent: #0F6E56;
+    --accent-fill: #E1F5EE;
+    --accent-text: #085041;
+    --danger: #993C1D;
+    --danger-fill: #FAECE7;
+    --danger-text: #4A1B0C;
+    --warn-fill: #FAEEDA;
+    --warn-text: #633806;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-mode="light"]) {
+      --bg-page: #1E1E1C; --bg-card: #2A2A27; --border: #444441; --border-strong: #5F5E5A;
+      --text-primary: #F1EFE8; --text-secondary: #B4B2A9; --text-muted: #888780;
+      --accent: #5DCAA5; --accent-fill: #04342C; --accent-text: #9FE1CB;
+      --danger: #F0997B; --danger-fill: #4A1B0C; --danger-text: #F5C4B3;
+      --warn-fill: #412402; --warn-text: #FAC775;
+    }
+  }
+  :root[data-mode="dark"] {
+    --bg-page: #1E1E1C; --bg-card: #2A2A27; --border: #444441; --border-strong: #5F5E5A;
+    --text-primary: #F1EFE8; --text-secondary: #B4B2A9; --text-muted: #888780;
+    --accent: #5DCAA5; --accent-fill: #04342C; --accent-text: #9FE1CB;
+    --danger: #F0997B; --danger-fill: #4A1B0C; --danger-text: #F5C4B3;
+    --warn-fill: #412402; --warn-text: #FAC775;
+  }
+  html, body {
+    background: var(--bg-page); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0; min-height: 100%;
+  }
+  .wrap { max-width: 460px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+  header.app { text-align: center; padding: 1rem 0 0.5rem; }
+  header.app h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  header.app p { font-size: 13px; color: var(--text-secondary); margin: 4px 0 0; }
+  nav.tabs { display: flex; gap: 6px; margin: 1rem 0 1.25rem; background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 4px; }
+  nav.tabs button { flex: 1; border: none; background: transparent; padding: 8px 4px; font-size: 13px; font-weight: 500; color: var(--text-secondary); border-radius: 7px; cursor: pointer; }
+  nav.tabs button.active { background: var(--accent-fill); color: var(--accent-text); }
+  .card { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.1rem 1.1rem; margin-bottom: 1rem; }
+  .card h2 { font-size: 16px; font-weight: 600; margin: 0 0 2px; }
+  .card .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 0.9rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pick-btn { text-align: left; border: 0.5px solid var(--border); background: var(--bg-card); border-radius: var(--radius); padding: 0.7rem 0.8rem; cursor: pointer; }
+  .pick-btn.selected { border-color: var(--accent); background: var(--accent-fill); }
+  .pick-btn .name { font-size: 14px; font-weight: 500; }
+  .pick-btn .sub2 { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .pick-btn.selected .sub2 { color: var(--accent-text); }
+  .qr-box { width: 96px; height: 96px; margin: 0 auto 0.75rem; border-radius: 8px; background: repeating-conic-gradient(var(--text-primary) 0% 25%, transparent 0% 50%) 50% / 16px 16px; opacity: 0.85; }
+  label { display: block; font-size: 13px; color: var(--text-secondary); margin: 0.7rem 0 4px; }
+  label:first-of-type { margin-top: 0; }
+  input, select { width: 100%; height: 38px; border: 0.5px solid var(--border-strong); border-radius: 7px; padding: 0 10px; font-size: 14px; background: var(--bg-page); color: var(--text-primary); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-fill); }
+  .consent { display: flex; align-items: flex-start; gap: 8px; margin-top: 0.9rem; }
+  .consent input { width: auto; height: auto; margin-top: 3px; }
+  .consent span { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+  .btn { width: 100%; height: 42px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.secondary { background: transparent; border: 0.5px solid var(--border-strong); color: var(--text-primary); }
+  .btn.small { height: 32px; margin-top: 0.5rem; font-size: 12.5px; }
+  .err { font-size: 12px; color: var(--danger); margin-top: 4px; }
+  .confirm { text-align: center; padding: 1rem 0; }
+  .confirm .tick { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-fill); color: var(--accent); font-size: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; }
+  .confirm h3 { font-size: 16px; margin: 0 0 4px; }
+  .confirm p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+  table.log { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.log th { text-align: left; font-weight: 500; color: var(--text-secondary); border-bottom: 0.5px solid var(--border); padding: 6px 4px; white-space: nowrap; }
+  table.log td { padding: 7px 4px; border-bottom: 0.5px solid var(--border); vertical-align: top; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge.borrowed { background: var(--warn-fill); color: var(--warn-text); }
+  .badge.returned, .badge.available { background: var(--accent-fill); color: var(--accent-text); }
+  .badge.overdue { background: var(--danger-fill); color: var(--danger-text); }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .stat { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 0.7rem; text-align: center; }
+  .stat .num { font-size: 20px; font-weight: 600; }
+  .stat .lbl { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .empty { text-align: center; padding: 2rem 0; color: var(--text-muted); font-size: 13px; }
+  .table-wrap { overflow-x: auto; }
+  .note { font-size: 11px; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5; }
+  .umb-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .umb-row:last-child { border-bottom: none; }
+  .umb-row .label { font-size: 13.5px; font-weight: 500; }
+  .umb-row .loc { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+  .topbar .btn { width: auto; margin-top: 0; height: 32px; padding: 0 12px; font-size: 12.5px; }
+  #qr-render-target { display: flex; justify-content: center; margin: 0.75rem 0; }
+  .cam-wrap { position: relative; border-radius: var(--radius); overflow: hidden; background: #000; margin-top: 0.9rem; }
+  .cam-wrap video { width: 100%; display: block; max-height: 320px; object-fit: cover; }
+  .cam-frame { position: absolute; inset: 12%; border: 2px solid rgba(255,255,255,0.85); border-radius: 12px; pointer-events: none; }
+  .cam-hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { margin-top: 0.5rem; }
+  #print-label-overlay { display: none; }
+  @media print {
+    body.printing-label > *:not(#print-label-overlay) { display: none !important; }
+    #print-label-overlay {
+      display: flex !important; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; position: fixed; inset: 0; background: #fff; color: #000;
+    }
+    #print-label-overlay .pid { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; }
+    #print-label-overlay .ptag { font-size: 11px; color: #444; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <h1>PASUMbrella</h1>
+    <p>Scan-to-borrow, scan-to-return umbrella logging</p>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="scan" class="active">Scan QR</button>
+    <button data-tab="admin">Admin</button>
+  </nav>
+
+  <div id="scan-view"></div>
+  <div id="admin-view" style="display:none;"></div>
+</div>
+
+<div id="print-label-overlay">
+  <div id="qr-print-target"></div>
+  <div class="pid" id="print-label-id"></div>
+  <div class="ptag">PASUMbrella &middot; scan to borrow or return</div>
+</div>
+
+<script>
+(function () {
+  var STATIONS = [
+    { id: "kk11", name: "KK11" },
+    { id: "kk12", name: "KK12" },
+    { id: "pasum", name: "PASUM" }
+  ];
+  var OVERDUE_MS = 6 * 60 * 60 * 1000; // 6 hours
+  var DEFAULT_ADMIN = { username: "Admin", password: "PASUMbrella220926" };
+  var LEGACY_DEFAULTS = [{ username: "admin", password: "pasumbrella" }];
+
+  var state = {
+    db: null,
+    umbrellas: {},
+    transactions: [],
+    adminCreds: null,
+    adminLoggedIn: false,
+    loginError: "",
+    selectedUmbrella: null,
+    confirmMsg: null,
+    registerQr: null,
+    cameraOpen: false,
+    cameraError: null,
+    cameFromUrl: false,
+    editingUmbrellaId: null
+  };
+  var cameraStream = null;
+  var cameraRafId = null;
+
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    attrs = attrs || {};
+    for (var k in attrs) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "html") e.innerHTML = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function (c) { if (c) e.appendChild(c); });
+    return e;
+  }
+  function text(t) { return document.createTextNode(t); }
+  function maskIC(ic) {
+    var digits = (ic || "").replace(/\D/g, "");
+    return digits.length >= 4 ? "\u2022\u2022\u2022\u2022" + digits.slice(-4) : "\u2022\u2022\u2022\u2022";
+  }
+  function fmtTime(ts) {
+    if (!ts) return "\u2014";
+    var d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+           d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+  function isOverdue(tx) { return tx.status === "borrowed" && (Date.now() - tx.borrowTime) > OVERDUE_MS; }
+  function stationName(id) { var s = STATIONS.filter(function (x) { return x.id === id; })[0]; return s ? s.name : "\u2014"; }
+  function stationOptions(selectedId) {
+    return STATIONS.map(function (s) {
+      var o = el("option", { value: s.id }, [text(s.name)]);
+      if (s.id === selectedId) o.setAttribute("selected", "selected");
+      return o;
+    });
+  }
+  function umbrellaUrl(umbrellaId) {
+    var base = window.location.origin + window.location.pathname;
+    return base + "?umbrella=" + encodeURIComponent(umbrellaId);
+  }
+  function nextUmbrellaLabel() {
+    var n = Object.keys(state.umbrellas).length + 1;
+    var padded = ("000" + n).slice(-3);
+    return "UMB-" + padded;
+  }
+
+  // ---------- DB wiring ----------
+  async function initDb() {
+    if (!window.firebase || FIREBASE_CONFIG.apiKey === "PASTE_API_KEY_HERE") {
+      state.cameraError = null;
+      document.getElementById("scan-view").innerHTML =
+        '<div class="card"><h2>Firebase isn\'t configured yet</h2><p class="sub">Paste your Firebase project config near the top of this HTML file (look for FIREBASE_CONFIG), then reload this page.</p></div>';
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var db = firebase.firestore();
+    state.db = db;
+
+    var adminSnap = await db.doc("settings/admin").get();
+    if (!adminSnap.exists) {
+      await db.doc("settings/admin").set(DEFAULT_ADMIN);
+      state.adminCreds = DEFAULT_ADMIN;
+    } else {
+      var existingCreds = adminSnap.data();
+      var isLegacy = LEGACY_DEFAULTS.some(function (d) { return d.username === existingCreds.username && d.password === existingCreds.password; });
+      if (isLegacy) {
+        await db.doc("settings/admin").set(DEFAULT_ADMIN);
+        state.adminCreds = DEFAULT_ADMIN;
+      } else {
+        state.adminCreds = existingCreds;
+      }
+    }
+
+    var urlUmbrellaId = new URLSearchParams(window.location.search).get("umbrella");
+    var urlAutoSelectDone = false;
+    db.collection("umbrellas").onSnapshot(function (qs) {
+      var map = {};
+      qs.docs.forEach(function (d) { map[d.id] = d.data(); });
+      state.umbrellas = map;
+      if (!urlAutoSelectDone && urlUmbrellaId && map[urlUmbrellaId]) {
+        state.selectedUmbrella = urlUmbrellaId;
+        state.cameFromUrl = true;
+        urlAutoSelectDone = true;
+      }
+      renderAll();
+    }, function () {});
+
+    db.collection("transactions").orderBy("borrowTime", "desc").limit(200).onSnapshot(function (qs) {
+      state.transactions = qs.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      renderAll();
+    }, function () {});
+  }
+
+  async function registerUmbrella(label, stationId) {
+    var db = state.db;
+    if (!db) return null;
+    var ref = await db.collection("umbrellas").add({
+      label: label,
+      status: "available",
+      currentStationId: stationId,
+      currentStationName: stationName(stationId),
+      createdAt: Date.now()
+    });
+    return ref.id;
+  }
+
+  async function editUmbrella(umbrellaId, updates) {
+    var db = state.db;
+    if (!db) return;
+    await db.doc("umbrellas/" + umbrellaId).update(updates);
+  }
+
+  async function deleteUmbrella(umbrellaId) {
+    var db = state.db;
+    if (!db) return;
+    await db.doc("umbrellas/" + umbrellaId).delete();
+  }
+
+  async function doBorrow(umbrellaId, stationId, form) {
+    var db = state.db;
+    if (!db) return;
+    var umb = state.umbrellas[umbrellaId];
+    if (!umb || umb.status !== "available") return;
+    await db.doc("umbrellas/" + umbrellaId).update({ status: "borrowed", currentStationId: null, currentStationName: null });
+    await db.collection("transactions").add({
+      umbrellaId: umbrellaId,
+      umbrellaLabel: umb.label,
+      stationBorrowedId: stationId,
+      stationBorrowedName: stationName(stationId),
+      stationReturnedId: null,
+      stationReturnedName: null,
+      name: form.name,
+      matric: form.matric,
+      icLast4: maskIC(form.ic),
+      phone: form.phone,
+      borrowTime: Date.now(),
+      returnTime: null,
+      status: "borrowed"
+    });
+  }
+
+  async function doReturn(umbrellaId, stationId) {
+    var db = state.db;
+    if (!db) return;
+    var openTx = state.transactions.filter(function (t) { return t.umbrellaId === umbrellaId && t.status === "borrowed"; })[0];
+    if (!openTx) return;
+    await db.doc("umbrellas/" + umbrellaId).update({ status: "available", currentStationId: stationId, currentStationName: stationName(stationId) });
+    await db.doc("transactions/" + openTx.id).update({
+      stationReturnedId: stationId,
+      stationReturnedName: stationName(stationId),
+      returnTime: Date.now(),
+      status: "returned"
+    });
+  }
+
+  // ---------- QR rendering ----------
+  function renderQrInto(targetEl, payload) {
+    targetEl.innerHTML = "";
+    if (window.QRCode) {
+      new QRCode(targetEl, { text: payload, width: 150, height: 150, colorDark: "#2C2C2A", colorLight: "#ffffff" });
+    } else {
+      targetEl.appendChild(el("div", { class: "qr-box" }));
+    }
+  }
+
+  async function saveUmbrellaQrImage(umbrellaId, label, btnEl) {
+    var offscreen = document.createElement("div");
+    offscreen.style.position = "fixed";
+    offscreen.style.left = "-9999px";
+    document.body.appendChild(offscreen);
+    renderQrInto(offscreen, umbrellaUrl(umbrellaId));
+    var blob = null;
+    var canvas = offscreen.querySelector("canvas");
+    if (canvas) {
+      blob = await new Promise(function (resolve) { canvas.toBlob(resolve, "image/png"); });
+    } else {
+      var img = offscreen.querySelector("img");
+      if (img) {
+        try { var resp = await fetch(img.src); blob = await resp.blob(); } catch (e) {}
+      }
+    }
+    document.body.removeChild(offscreen);
+    if (!blob) { if (btnEl) { btnEl.textContent = "Couldn't generate image"; } return; }
+    var originalText = btnEl ? btnEl.textContent : "";
+    try {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = label + ".png";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      if (btnEl) { btnEl.textContent = "Saved"; setTimeout(function () { btnEl.textContent = originalText; btnEl.disabled = false; }, 1500); }
+    } catch (err) {
+      if (btnEl) { btnEl.textContent = "Save failed"; btnEl.disabled = false; }
+    }
+  }
+
+  function printUmbrellaLabel(umbrellaId, label) {
+    var payload = umbrellaUrl(umbrellaId);
+    var qrTarget = document.getElementById("qr-print-target");
+    renderQrInto(qrTarget, payload);
+    document.getElementById("print-label-id").textContent = label;
+    document.body.classList.add("printing-label");
+    setTimeout(function () {
+      window.print();
+      document.body.classList.remove("printing-label");
+    }, 60);
+  }
+
+  // ---------- Camera scanning ----------
+  function stopCamera() {
+    if (cameraRafId) { cancelAnimationFrame(cameraRafId); cameraRafId = null; }
+    if (cameraStream) { cameraStream.getTracks().forEach(function (t) { t.stop(); }); cameraStream = null; }
+    state.cameraOpen = false;
+  }
+
+  async function startCamera() {
+    state.cameraError = null;
+    if (!window.isSecureContext) {
+      state.cameraError = "Camera access needs a secure (https) connection, which this page should have \u2014 try reloading.";
+      renderAll();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      state.cameraError = "This browser doesn't expose camera access to embedded pages like this one.";
+      renderAll();
+      return;
+    }
+    if (!window.jsQR) {
+      state.cameraError = "QR scanning library failed to load \u2014 try again in a moment.";
+      renderAll();
+      return;
+    }
+    var attempts = [
+      { video: { facingMode: { ideal: "environment" } } },
+      { video: true }
+    ];
+    var lastErr = null;
+    for (var i = 0; i < attempts.length; i++) {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(attempts[i]);
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (lastErr) {
+      var name = lastErr && lastErr.name;
+      if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+        state.cameraError = "Camera access was blocked \u2014 either you (or this embedded view) denied it, or the browser is refusing camera use inside an embedded page. Try opening this artifact's link directly in a full browser tab rather than inside another app.";
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        state.cameraError = "No camera was found on this device.";
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        state.cameraError = "The camera is already in use by another app.";
+      } else {
+        state.cameraError = "Couldn't access the camera (" + (name || "unknown error") + ").";
+      }
+      renderAll();
+      return;
+    }
+    state.cameraOpen = true;
+    renderAll();
+    var video = document.getElementById("cam-video");
+    if (!video) return;
+    video.srcObject = cameraStream;
+    await video.play();
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+    function tick() {
+      if (!state.cameraOpen || !video.videoWidth) { cameraRafId = requestAnimationFrame(tick); return; }
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = window.jsQR(imgData.data, imgData.width, imgData.height);
+      var scannedId = null;
+      if (code && code.data) {
+        try { scannedId = new URL(code.data).searchParams.get("umbrella"); } catch (e) {}
+      }
+      if (scannedId) {
+        if (state.umbrellas[scannedId]) {
+          stopCamera();
+          state.selectedUmbrella = scannedId;
+          renderAll();
+          return;
+        }
+      }
+      cameraRafId = requestAnimationFrame(tick);
+    }
+    cameraRafId = requestAnimationFrame(tick);
+  }
+
+  // ---------- Scan view ----------
+  function umbrellaList() {
+    return Object.keys(state.umbrellas).map(function (id) {
+      return Object.assign({ id: id }, state.umbrellas[id]);
+    }).sort(function (a, b) { return (a.label || "").localeCompare(b.label || ""); });
+  }
+
+  function renderScan() {
+    var root = document.getElementById("scan-view");
+    root.innerHTML = "";
+
+    if (state.confirmMsg) {
+      var c = el("div", { class: "card" }, [
+        el("div", { class: "confirm" }, [
+          el("div", { class: "tick" }, [text("\u2713")]),
+          el("h3", {}, [text(state.confirmMsg.title)]),
+          el("p", {}, [text(state.confirmMsg.body)])
+        ]),
+        el("button", { class: "btn secondary" }, [text("Done")])
+      ]);
+      c.querySelector("button").onclick = function () { state.confirmMsg = null; state.selectedUmbrella = null; state.cameFromUrl = false; renderAll(); };
+      root.appendChild(c);
+      return;
+    }
+
+    if (state.cameFromUrl && state.selectedUmbrella) {
+      renderUmbrellaAction(root);
+      return;
+    }
+
+    var pickCard = el("div", { class: "card" }, [
+      el("h2", {}, [text("Scan an umbrella's QR")]),
+      el("p", { class: "sub" }, [text("Use your camera to scan the QR on the umbrella, or tap it below.")])
+    ]);
+
+    if (state.cameraOpen) {
+      var camWrap = el("div", { class: "cam-wrap" }, [
+        el("video", { id: "cam-video", playsinline: "true", muted: "true" }),
+        el("div", { class: "cam-frame" }),
+        el("div", { class: "cam-hint" }, [text("Point the camera at the umbrella's QR code")])
+      ]);
+      pickCard.appendChild(camWrap);
+      var stopBtn = el("button", { class: "btn secondary" }, [text("Cancel scan")]);
+      stopBtn.onclick = function () { stopCamera(); renderAll(); };
+      pickCard.appendChild(stopBtn);
+    } else {
+      var camBtn = el("button", { class: "btn primary" }, [text("Scan with camera")]);
+      camBtn.onclick = function () { startCamera(); };
+      pickCard.appendChild(camBtn);
+      if (state.cameraError) pickCard.appendChild(el("div", { class: "err" }, [text(state.cameraError)]));
+    }
+
+    var umbrellas = umbrellaList();
+    if (!state.cameraOpen) {
+      pickCard.appendChild(el("p", { class: "sub", style: "margin-top:0.9rem;" }, [text("Or tap it below (camera scanning isn't supported in every browser here):")]));
+      var grid = el("div", { class: "grid2" });
+      if (umbrellas.length === 0) {
+        grid.appendChild(el("div", { class: "empty" }, [text(state.db ? "No umbrellas registered yet \u2014 an admin needs to add some." : "Preview mode \u2014 connect db to try it live.")]));
+      }
+      umbrellas.forEach(function (u) {
+        var subLabel = u.status === "available" ? ("at " + (u.currentStationName || "\u2014")) : "on loan";
+        var btn = el("button", { class: "pick-btn" + (state.selectedUmbrella === u.id ? " selected" : "") }, [
+          el("div", { class: "name" }, [text(u.label)]),
+          el("div", { class: "sub2" }, [text(subLabel)])
+        ]);
+        btn.onclick = function () { state.selectedUmbrella = u.id; renderAll(); };
+        grid.appendChild(btn);
+      });
+      pickCard.appendChild(grid);
+    }
+    root.appendChild(pickCard);
+    renderUmbrellaAction(root);
+  }
+
+  function renderUmbrellaAction(root) {
+    if (!state.selectedUmbrella) return;
+    var umb = state.umbrellas[state.selectedUmbrella];
+    if (!umb) return;
+
+    var actionCard = el("div", { class: "card" });
+    actionCard.appendChild(el("div", { class: "qr-box" }));
+    actionCard.appendChild(el("h2", { style: "text-align:center" }, [text(umb.label)]));
+    root.appendChild(actionCard);
+
+    if (umb.status === "available") root.appendChild(renderBorrowForm(state.selectedUmbrella, umb));
+    else root.appendChild(renderReturnForm(state.selectedUmbrella, umb));
+  }
+
+  function renderBorrowForm(umbrellaId, umb) {
+    var card = el("div", { class: "card" });
+    card.appendChild(el("h2", {}, [text("Borrow this umbrella")]));
+    card.appendChild(el("p", { class: "sub" }, [text("Brief details are used only to trace this umbrella if it isn't returned.")]));
+
+    card.appendChild(el("label", {}, [text("Which station are you at?")]));
+    var stationSel = el("select", {}, stationOptions(umb.currentStationId));
+    card.appendChild(stationSel);
+
+    var nameI = el("input", { placeholder: "Full name" });
+    var matricI = el("input", { placeholder: "Matric number" });
+    var icI = el("input", { placeholder: "IC number (only last 4 digits are kept)" });
+    var phoneI = el("input", { placeholder: "Phone number", type: "tel" });
+    [["Full name", nameI], ["Matric number", matricI], ["IC number", icI], ["Phone number", phoneI]].forEach(function (pair) {
+      card.appendChild(el("label", {}, [text(pair[0])]));
+      card.appendChild(pair[1]);
+    });
+
+    var errBox = el("div", { class: "err", style: "display:none" });
+    var consentC = el("input", { type: "checkbox" });
+    var consentRow = el("div", { class: "consent" }, [
+      consentC,
+      el("span", {}, [text("I consent to PASUMbrella collecting this information solely to log and recover this umbrella, in line with PDPA 2010. My IC is stored as its last 4 digits only, and records are cleared after 90 days once returned.")])
+    ]);
+    card.appendChild(consentRow);
+    card.appendChild(errBox);
+
+    var submitBtn = el("button", { class: "btn primary" }, [text("Confirm borrow")]);
+    submitBtn.onclick = async function () {
+      var vals = { name: nameI.value.trim(), matric: matricI.value.trim(), ic: icI.value.trim(), phone: phoneI.value.trim() };
+      if (!vals.name || !vals.matric || !vals.ic || !vals.phone) {
+        errBox.textContent = "Fill in every field before continuing."; errBox.style.display = "block"; return;
+      }
+      if (!consentC.checked) {
+        errBox.textContent = "Please confirm consent to proceed."; errBox.style.display = "block"; return;
+      }
+      errBox.style.display = "none";
+      submitBtn.disabled = true; submitBtn.textContent = "Saving\u2026";
+      await doBorrow(umbrellaId, stationSel.value, vals);
+      state.confirmMsg = { title: "Umbrella unlocked", body: umb.label + " is now logged to you. Please return it by scanning it again at any station." };
+      renderAll();
+    };
+    card.appendChild(submitBtn);
+    return card;
+  }
+
+  function renderReturnForm(umbrellaId, umb) {
+    var openTx = state.transactions.filter(function (t) { return t.umbrellaId === umbrellaId && t.status === "borrowed"; })[0];
+    var card = el("div", { class: "card" });
+    card.appendChild(el("h2", {}, [text("Return this umbrella")]));
+    card.appendChild(el("p", { class: "sub" }, [
+      text(openTx ? ("On loan since " + fmtTime(openTx.borrowTime) + " \u00b7 borrowed from " + openTx.stationBorrowedName + ".") : "This umbrella is currently marked as on loan.")
+    ]));
+
+    card.appendChild(el("label", {}, [text("Which station are you dropping it off at?")]));
+    var stationSel = el("select", {}, stationOptions(null));
+    card.appendChild(stationSel);
+
+    var confirmBtn = el("button", { class: "btn primary" }, [text("Confirm return")]);
+    confirmBtn.onclick = async function () {
+      confirmBtn.disabled = true; confirmBtn.textContent = "Saving\u2026";
+      await doReturn(umbrellaId, stationSel.value);
+      state.confirmMsg = { title: "Umbrella returned", body: umb.label + " logged as returned at " + stationName(stationSel.value) + "." };
+      renderAll();
+    };
+    card.appendChild(confirmBtn);
+    return card;
+  }
+
+  // ---------- Admin view ----------
+  function renderAdminLogin() {
+    var root = document.getElementById("admin-view");
+    root.innerHTML = "";
+    var card = el("div", { class: "card" });
+    card.appendChild(el("h2", {}, [text("Admin sign in")]));
+    card.appendChild(el("p", { class: "sub" }, [text("Staff access only.")]));
+
+    var userI = el("input", { placeholder: "Username" });
+    var passI = el("input", { placeholder: "Password", type: "password" });
+    card.appendChild(el("label", {}, [text("Username")]));
+    card.appendChild(userI);
+    card.appendChild(el("label", {}, [text("Password")]));
+    card.appendChild(passI);
+
+    var errBox = el("div", { class: "err", style: "display:none" });
+    card.appendChild(errBox);
+
+    var btn = el("button", { class: "btn primary" }, [text("Sign in")]);
+    btn.onclick = function () {
+      var creds = state.adminCreds || DEFAULT_ADMIN;
+      if (userI.value === creds.username && passI.value === creds.password) {
+        state.adminLoggedIn = true; state.loginError = ""; renderAll();
+      } else {
+        errBox.textContent = "Incorrect username or password."; errBox.style.display = "block";
+      }
+    };
+    card.appendChild(btn);
+    root.appendChild(card);
+  }
+
+  function renderEditUmbrellaForm(u) {
+    var wrap = el("div", { class: "card", style: "background:var(--bg-page); margin:8px 0;" });
+    wrap.appendChild(el("h2", { style: "font-size:14px;" }, [text("Edit " + u.label)]));
+
+    wrap.appendChild(el("label", {}, [text("Label")]));
+    var labelI = el("input", { value: u.label });
+    wrap.appendChild(labelI);
+
+    var stationSel = null;
+    if (u.status === "available") {
+      wrap.appendChild(el("label", {}, [text("Current station")]));
+      stationSel = el("select", {}, stationOptions(u.currentStationId));
+      wrap.appendChild(stationSel);
+    } else {
+      wrap.appendChild(el("p", { class: "note" }, [text("This umbrella is currently on loan, so its station can't be set directly \u2014 it will update automatically when returned.")]));
+    }
+
+    var row = el("div", { class: "btn-row" });
+    var saveBtn = el("button", { class: "btn primary" }, [text("Save")]);
+    saveBtn.onclick = async function () {
+      var newLabel = labelI.value.trim();
+      if (!newLabel) return;
+      saveBtn.disabled = true; saveBtn.textContent = "Saving\u2026";
+      var updates = { label: newLabel };
+      if (stationSel) {
+        updates.currentStationId = stationSel.value;
+        updates.currentStationName = stationName(stationSel.value);
+      }
+      await editUmbrella(u.id, updates);
+      state.editingUmbrellaId = null;
+      renderAll();
+    };
+    var cancelBtn = el("button", { class: "btn secondary" }, [text("Cancel")]);
+    cancelBtn.onclick = function () { state.editingUmbrellaId = null; renderAll(); };
+    row.appendChild(saveBtn); row.appendChild(cancelBtn);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  function renderAdmin() {
+    var root = document.getElementById("admin-view");
+    if (!state.adminLoggedIn) { renderAdminLogin(); return; }
+    root.innerHTML = "";
+
+    var topbar = el("div", { class: "topbar" }, [
+      el("h2", { style: "margin:0;" }, [text("Admin")]),
+      (function () {
+        var b = el("button", { class: "btn secondary" }, [text("Log out")]);
+        b.onclick = function () { state.adminLoggedIn = false; renderAll(); };
+        return b;
+      })()
+    ]);
+    root.appendChild(topbar);
+
+    var umbrellas = umbrellaList();
+    var available = umbrellas.filter(function (u) { return u.status === "available"; }).length;
+    var borrowed = umbrellas.filter(function (u) { return u.status === "borrowed"; }).length;
+    var overdue = state.transactions.filter(isOverdue).length;
+
+    root.appendChild(el("div", { class: "stat-grid" }, [
+      el("div", { class: "stat" }, [el("div", { class: "num" }, [text(String(umbrellas.length))]), el("div", { class: "lbl" }, [text("Umbrellas total")])]),
+      el("div", { class: "stat" }, [el("div", { class: "num" }, [text(available + " / " + borrowed)]), el("div", { class: "lbl" }, [text("Available / on loan")])]),
+      el("div", { class: "stat" }, [el("div", { class: "num" }, [text(String(overdue))]), el("div", { class: "lbl" }, [text("Overdue (6h+)")])])
+    ]));
+
+    var regCard = el("div", { class: "card" });
+    regCard.appendChild(el("h2", {}, [text("Register a new umbrella")]));
+    regCard.appendChild(el("p", { class: "sub" }, [text("Generates a unique QR to print and stick onto the umbrella.")]));
+    regCard.appendChild(el("label", {}, [text("Label")]));
+    var labelI = el("input", { value: nextUmbrellaLabel() });
+    regCard.appendChild(labelI);
+    regCard.appendChild(el("label", {}, [text("Starting station")]));
+    var startSel = el("select", {}, stationOptions(STATIONS[0].id));
+    regCard.appendChild(startSel);
+    var regBtn = el("button", { class: "btn primary" }, [text("Generate QR")]);
+    regBtn.onclick = async function () {
+      var label = labelI.value.trim();
+      if (!label) return;
+      regBtn.disabled = true; regBtn.textContent = "Creating\u2026";
+      var newId = await registerUmbrella(label, startSel.value);
+      regBtn.disabled = false; regBtn.textContent = "Generate QR";
+      state.registerQr = { id: newId, label: label };
+      renderAll();
+    };
+    regCard.appendChild(regBtn);
+
+    if (state.registerQr) {
+      var qrWrap = el("div", {});
+      var qrTarget = el("div", { id: "qr-render-target" });
+      qrWrap.appendChild(qrTarget);
+      qrWrap.appendChild(el("p", { style: "text-align:center; font-size:13px; font-weight:500; margin:0 0 0.5rem;" }, [text(state.registerQr.label)]));
+      var btnRow = el("div", { class: "btn-row" });
+      var printBtn = el("button", { class: "btn secondary" }, [text("Print label")]);
+      printBtn.onclick = function () { printUmbrellaLabel(state.registerQr.id, state.registerQr.label); };
+      var saveBtn = el("button", { class: "btn secondary" }, [text("Save image")]);
+      saveBtn.onclick = function () { saveUmbrellaQrImage(state.registerQr.id, state.registerQr.label, saveBtn); };
+      btnRow.appendChild(printBtn); btnRow.appendChild(saveBtn);
+      qrWrap.appendChild(btnRow);
+      regCard.appendChild(qrWrap);
+      setTimeout(function () {
+        var t = document.getElementById("qr-render-target");
+        if (t) renderQrInto(t, umbrellaUrl(state.registerQr.id));
+      }, 0);
+    }
+    root.appendChild(regCard);
+
+    var umbCard = el("div", { class: "card" });
+    umbCard.appendChild(el("h2", {}, [text("All umbrellas")]));
+    if (umbrellas.length === 0) {
+      umbCard.appendChild(el("div", { class: "empty" }, [text("None registered yet.")]));
+    } else {
+      umbrellas.forEach(function (u) {
+        if (state.editingUmbrellaId === u.id) {
+          umbCard.appendChild(renderEditUmbrellaForm(u));
+          return;
+        }
+        var row = el("div", { class: "umb-row" }, [
+          el("div", {}, [
+            el("div", { class: "label" }, [text(u.label)]),
+            el("div", { class: "loc" }, [text(u.status === "available" ? ("At " + (u.currentStationName || "\u2014")) : "On loan")])
+          ])
+        ]);
+        var right = el("div", { style: "display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;" });
+        right.appendChild(el("span", { class: "badge " + (u.status === "available" ? "available" : "borrowed") }, [text(u.status === "available" ? "Available" : "On loan")]));
+        var pr = el("button", { class: "btn small secondary", style: "width:auto;" }, [text("Print QR")]);
+        pr.onclick = function () { printUmbrellaLabel(u.id, u.label); };
+        right.appendChild(pr);
+        var sv = el("button", { class: "btn small secondary", style: "width:auto;" }, [text("Save")]);
+        sv.onclick = function () { saveUmbrellaQrImage(u.id, u.label, sv); };
+        right.appendChild(sv);
+        var ed = el("button", { class: "btn small secondary", style: "width:auto;" }, [text("Edit")]);
+        ed.onclick = function () { state.editingUmbrellaId = u.id; renderAll(); };
+        right.appendChild(ed);
+        var del = el("button", { class: "btn small secondary", style: "width:auto; color:var(--danger); border-color:var(--danger);" }, [text("Delete")]);
+        del.onclick = async function () {
+          var openTx = state.transactions.some(function (t) { return t.umbrellaId === u.id && t.status === "borrowed"; });
+          var msg = "Delete " + u.label + "? This cannot be undone." + (openTx ? " Note: it's currently on loan \u2014 its transaction history will remain in the log, but the umbrella record itself will be gone." : "");
+          if (!window.confirm(msg)) return;
+          del.disabled = true; del.textContent = "Deleting\u2026";
+          await deleteUmbrella(u.id);
+        };
+        right.appendChild(del);
+        row.appendChild(right);
+        umbCard.appendChild(row);
+      });
+    }
+    root.appendChild(umbCard);
+
+    var logCard = el("div", { class: "card" });
+    logCard.appendChild(el("h2", {}, [text("Transaction log")]));
+    if (state.transactions.length === 0) {
+      logCard.appendChild(el("div", { class: "empty" }, [text("No transactions yet.")]));
+    } else {
+      var tw = el("div", { class: "table-wrap" });
+      var table = el("table", { class: "log" });
+      table.appendChild(el("tr", {}, [
+        el("th", {}, [text("Umbrella")]), el("th", {}, [text("Borrower")]), el("th", {}, [text("Matric")]), el("th", {}, [text("IC")]),
+        el("th", {}, [text("From")]), el("th", {}, [text("Borrowed")]),
+        el("th", {}, [text("To")]), el("th", {}, [text("Returned")]), el("th", {}, [text("Status")])
+      ]));
+      state.transactions.forEach(function (tx) {
+        var status = isOverdue(tx) ? "overdue" : tx.status;
+        var badgeText = status === "overdue" ? "Overdue" : (status === "returned" ? "Returned" : "Borrowed");
+        table.appendChild(el("tr", {}, [
+          el("td", {}, [text(tx.umbrellaLabel || "\u2014")]),
+          el("td", {}, [text(tx.name)]),
+          el("td", {}, [text(tx.matric)]),
+          el("td", {}, [text(tx.icLast4)]),
+          el("td", {}, [text(tx.stationBorrowedName)]),
+          el("td", {}, [text(fmtTime(tx.borrowTime))]),
+          el("td", {}, [text(tx.stationReturnedName || "\u2014")]),
+          el("td", {}, [text(tx.returnTime ? fmtTime(tx.returnTime) : "\u2014")]),
+          el("td", {}, [el("span", { class: "badge " + status }, [text(badgeText)])])
+        ]));
+      });
+      tw.appendChild(table);
+      logCard.appendChild(tw);
+    }
+    logCard.appendChild(el("div", { class: "note" }, [text("Full IC numbers are never stored \u2014 only the last 4 digits, for verification. Returned records are intended to be purged after 90 days.")]));
+    root.appendChild(logCard);
+  }
+
+  function renderAll() { renderScan(); renderAdmin(); }
+
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-tab]");
+    if (!btn) return;
+    document.querySelectorAll("#tabs button").forEach(function (b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    var tab = btn.getAttribute("data-tab");
+    document.getElementById("scan-view").style.display = tab === "scan" ? "" : "none";
+    document.getElementById("admin-view").style.display = tab === "admin" ? "" : "none";
+  });
+
+  renderAll();
+  initDb().catch(function (err) { console.error(err); renderAll(); });
+})();
+</script>
+</body>
+</html>
